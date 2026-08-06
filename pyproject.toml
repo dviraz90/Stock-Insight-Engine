@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "insight-engine"
+version = "0.1.0-m0"
+description = "Stock Market Insight Engine — informational / decision-support only (NOT investment advice)"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.6",
+    "fastapi>=0.110",   # read API (M3)
+]
+
+[project.optional-dependencies]
+live = ["anthropic>=0.39"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+insight-engine = "insight_engine.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+insight_engine = ["persistence/schema.sql"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

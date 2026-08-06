@@ -1,0 +1,11 @@
+# Prototype (M0) runtime deps. Offline slice needs only pydantic.
+pydantic>=2.6
+
+# Read API — used at M3.
+fastapi>=0.110
+
+# Optional: real LLM path (`--live`). Not needed for the offline slice.
+# anthropic>=0.39
+
+# Dev/test.
+pytest>=8.0

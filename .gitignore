@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Prototype data store
+*.db
+*.db-wal
+*.db-shm
+insight.db
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Env / secrets — never commit API keys
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
