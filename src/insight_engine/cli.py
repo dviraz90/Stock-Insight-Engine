@@ -12,6 +12,7 @@ implementations once providers and a key are configured.
 Usage:
     python -m insight_engine.cli ingest [--db PATH] [--ticker AAPL]
     python -m insight_engine.cli report [--db PATH] [--ticker AAPL]
+    python -m insight_engine.cli dashboard [--db PATH] [--ticker AAPL] [--out dashboard.html]
 """
 
 from __future__ import annotations
@@ -24,6 +25,8 @@ from .adapters.edgar import EdgarAdapter
 from .adapters.price import PriceAdapter
 from .analysis import analyst_agent
 from .analysis.llm import AnthropicLLMClient, StubLLMClient
+from .dashboard import read_model
+from .dashboard import render_html
 from .guardrail import pipeline as guardrail
 from .ingestion.pipeline import ingest as ingest_pipeline
 from .persistence import db
@@ -91,6 +94,29 @@ def cmd_report(args) -> int:
     return 0
 
 
+def cmd_dashboard(args) -> int:
+    conn = db.connect(args.db)
+    _prepare(conn, args.ticker, args.live, args.user_agent)
+
+    llm = AnthropicLLMClient() if args.live else StubLLMClient()
+    report = analyst_agent.generate_report(conn, args.ticker, llm=llm)
+    result = guardrail.run(conn, report)
+    db.save_report(conn, result.report)
+
+    if not result.approved:
+        print(f"[REJECTED] new report for {args.ticker} failed the guardrail:")
+        for r in result.rejections:
+            print(f"  - stage={r.stage} reason={r.reason} text={r.offending_text!r}")
+        print("Dashboard will show the last approved report, if any (never partial/unapproved content).")
+
+    data = read_model.build_dashboard_data(conn, args.ticker)
+    html_out = render_html.render(data)
+    with open(args.out, "w", encoding="utf-8") as f:
+        f.write(html_out)
+    print(f"Wrote dashboard for {args.ticker} to {args.out}")
+    return 0
+
+
 def _print_report(report) -> None:
     print("=" * 68)
     print(f"ANALYSIS REPORT — {report.ticker}   [{report.status.value}]")
@@ -134,6 +160,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("ingest").set_defaults(func=cmd_ingest)
     sub.add_parser("report").set_defaults(func=cmd_report)
+    dash = sub.add_parser("dashboard")
+    dash.add_argument("--out", default="dashboard.html", help="output HTML file path")
+    dash.set_defaults(func=cmd_dashboard)
     return p
 
 
